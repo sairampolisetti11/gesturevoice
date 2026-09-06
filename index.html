@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>GestureVoice</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #eef6ff;
+      color: #102a43;
+      text-align: center;
+    }
+
+    header {
+      background: #1565c0;
+      color: white;
+      padding: 22px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 36px;
+    }
+
+    .tagline {
+      margin-top: 8px;
+      font-size: 17px;
+    }
+
+    .box {
+      background: white;
+      max-width: 760px;
+      margin: 35px auto;
+      padding: 28px;
+      border-radius: 18px;
+      box-shadow: 0 8px 25px #b8c7d9;
+    }
+
+    #message {
+      color: #1565c0;
+      font-size: 30px;
+      min-height: 45px;
+    }
+
+    #status {
+      color: #52616b;
+      font-size: 16px;
+    }
+
+    .camera-box {
+      width: 100%;
+      max-width: 640px;
+      margin: 20px auto;
+    }
+
+    video {
+      width: 100%;
+      border-radius: 14px;
+      transform: scaleX(-1);
+    }
+
+    button {
+      background: #1565c0;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 14px 22px;
+      margin: 8px;
+      font-size: 17px;
+      cursor: pointer;
+    }
+
+    .help-button {
+      background: #d32f2f;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>GestureVoice</h1>
+    <p class="tagline">Turn hand gestures into text and speech</p>
+  </header>
+
+  <main class="box">
+    <h2>Recognized Message</h2>
+    <h2 id="message">Click Start Camera</h2>
+    <p id="status">Camera is off</p>
+
+    <button onclick="startCamera()">Start Camera</button>
+    <button onclick="speakMessage()">🔊 Speak</button>
+
+    <div class="camera-box">
+      <video id="video" autoplay playsinline></video>
+    </div>
+
+    <h3>Gesture Guide</h3>
+    <p>🖐 Open palm = Hello &nbsp; | &nbsp; ✊ Closed fist = I need help</p>
+
+    <button class="help-button" onclick="changeMessage('I need help')">
+      Emergency Help
+    </button>
+  </main>
+
+  <script>
+    const video = document.getElementById("video");
+    const message = document.getElementById("message");
+    const statusText = document.getElementById("status");
+
+    let candidateGesture = "";
+    let candidateCount = 0;
+    let currentMessage = "";
+
+    function changeMessage(newMessage) {
+      currentMessage = newMessage;
+      message.innerText = newMessage;
+      speakMessage();
+    }
+
+    function speakMessage() {
+      speechSynthesis.cancel();
+      speechSynthesis.speak(
+        new SpeechSynthesisUtterance(message.innerText)
+      );
+    }
+
+    function countRaisedFingers(points) {
+      let raised = 0;
+
+      if (points[8].y < points[6].y) raised++;
+      if (points[12].y < points[10].y) raised++;
+      if (points[16].y < points[14].y) raised++;
+      if (points[20].y < points[18].y) raised++;
+
+      return raised;
+    }
+
+    function recognizeGesture(points) {
+      const raisedFingers = countRaisedFingers(points);
+
+      if (raisedFingers >=
+   4) return "Hello";
+if (raisedFingers === 1) return "I need water";
+if (raisedFingers === 2) return "Yes";
+if (raisedFingers === 3) return "No";
+   if (raisedFingers === 0) return "I need help";
+
+      return "Gesture not recognized";
+    }
+
+    function onResults(results) {
+      if (results.multiHandLandmarks.length === 0) {
+        statusText.innerText = "Show your hand to the camera";
+        candidateGesture = "";
+        candidateCount = 0;
+        return;
+      }
+
+      statusText.innerText = "Hand detected — hold still for a moment";
+
+      const detectedGesture = recognizeGesture(
+        results.multiHandLandmarks[0]
+      );
+
+      if (detectedGesture === "Gesture not recognized") {
+        candidateGesture = "";
+        candidateCount = 0;
+        return;
+      }
+
+      if (detectedGesture === candidateGesture) {
+        candidateCount++;
+      } else {
+        candidateGesture = detectedGesture;
+        candidateCount = 1;
+      }
+
+      if (candidateCount >= 12 && detectedGesture !== currentMessage) {
+        changeMessage(detectedGesture);
+      }
+    }
+
+    const hands = new Hands({
+      locateFile: (file) =>
+        `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+    });
+
+    hands.setOptions({
+      maxNumHands: 1,
+      modelComplexity: 1,
+      minDetectionConfidence: 0.7,
+      minTrackingConfidence: 0.7
+    });
+
+    hands.onResults(onResults);
+
+    async function startCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true
+        });
+
+        video.srcObject = stream;
+        statusText.innerText = "Camera started — show your hand";
+
+        video.addEventListener("loadeddata", () => {
+          const camera = new Camera(video, {
+            onFrame: async () => {
+              await hands.send({ image: video });
+            },
+            width: 640,
+            height: 480
+          });
+
+          camera.start();
+        }, { once: true });
+      } catch (error) {
+      statusText.innerText =
+          "Please allow camera permission, then try again.";
+      }
+    }
+  </script>
+</body>
+</html>
