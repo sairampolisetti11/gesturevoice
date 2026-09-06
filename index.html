@@ -7,6 +7,152 @@
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
 
   <style>
+    * {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #e3f2fd, #f5f9ff);
+  color: #102a43;
+  text-align: center;
+  min-height: 100vh;
+}
+
+header {
+  background: linear-gradient(135deg, #1565c0, #42a5f5);
+  color: white;
+  padding: 35px 20px;
+  box-shadow: 0 5px 20px rgba(21, 101, 192, 0.3);
+}
+
+h1 {
+  margin: 0;
+  font-size: 44px;
+  letter-spacing: 1px;
+}
+
+.tagline {
+  margin-top: 10px;
+  font-size: 18px;
+}
+
+.box {
+  background: rgba(255, 255, 255, 0.95);
+  max-width: 850px;
+  margin: 35px auto;
+  padding: 35px;
+  border-radius: 25px;
+  box-shadow: 0 15px 40px rgba(30, 80, 130, 0.18);
+}
+
+#message {
+  color: #1565c0;
+  font-size: 32px;
+  min-height: 45px;
+  transition: 0.3s;
+}
+
+#status {
+  color: #52616b;
+  font-size: 16px;
+}
+
+.camera-box {
+  width: 100%;
+  max-width: 640px;
+  margin: 25px auto;
+  padding: 8px;
+  background: linear-gradient(135deg, #1565c0, #42a5f5);
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(21, 101, 192, 0.25);
+}
+
+video {
+  width: 100%;
+  display: block;
+  border-radius: 14px;
+  transform: scaleX(-1);
+}
+
+button {
+  background: linear-gradient(135deg, #1565c0, #2196f3);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 24px;
+  margin: 8px;
+  font-size: 17px;
+  cursor: pointer;
+  transition: 0.25s;
+  box-shadow: 0 5px 15px rgba(21, 101, 192, 0.25);
+}
+
+button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(21, 101, 192, 0.35);
+}
+
+.help-button {
+  background: linear-gradient(135deg, #d32f2f, #ef5350);
+}
+
+.help-button:hover {
+  box-shadow: 0 8px 20px rgba(211, 47, 47, 0.35);
+}
+
+h3 {
+  color: #1565c0;
+  margin-top: 30px;
+}
+
+
+.history {
+  margin-top: 30px;
+  padding: 20px;
+  background: #f5f9ff;
+  border-radius: 16px;
+  text-align: left;
+}
+
+.history h3 {
+  text-align: center;
+  margin-top: 0;
+}
+
+#historyList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+#historyList li {
+  background: white;
+  padding: 12px 16px;
+  margin: 8px 0;
+  border-radius: 10px;
+  border-left: 5px solid #1565c0;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+  font-size: 16px;
+}@media (max-width: 600px) {
+  h1 {
+    font-size: 34px;
+  }
+
+  .box {
+    margin: 20px 12px;
+    padding: 22px;
+  }
+
+  #message {
+    font-size: 26px;
+  }
+
+  button {
+    width: 90%;
+  }
+}
     body {
       margin: 0;
       font-family: Arial, sans-serif;
@@ -104,6 +250,12 @@
     <button class="help-button" onclick="changeMessage('I need help')">
       Emergency Help
     </button>
+    <div class="history">
+  <h3>📜 Gesture History</h3>
+  <ul id="historyList">
+    <li>No gestures yet</li>
+  </ul>
+</div>
   </main>
 
   <script>
@@ -118,10 +270,31 @@
     function changeMessage(newMessage) {
       currentMessage = newMessage;
       message.innerText = newMessage;
+      addToHistory(newMessage);
       speakMessage();
     }
 
-    function speakMessage() {
+    
+    function addToHistory(text) {
+  const historyList = document.getElementById("historyList");
+
+  const emptyMessage = historyList.querySelector("li");
+
+  if (emptyMessage && emptyMessage.innerText === "No gestures yet") {
+    historyList.innerHTML = "";
+  }
+
+  const item = document.createElement("li");
+  item.innerText = text;
+
+  historyList.prepend(item);
+
+  if (historyList.children.length > 10) {
+    historyList.removeChild(historyList.lastChild);
+  }
+}
+
+function speakMessage() {
       speechSynthesis.cancel();
       speechSynthesis.speak(
         new SpeechSynthesisUtterance(message.innerText)
